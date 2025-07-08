@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>F3 30-Minute Beatdown</title>
+<style>
+  body{font-family:Arial,Helvetica,sans-serif;background:#111;color:#f4f4f4;margin:0;padding:0;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;}
+  #card{background:#222;padding:1.25rem 1.5rem;border-radius:8px;box-shadow:0 0 10px #000;max-width:500px;width:90vw;}
+  h1{font-size:1.4rem;margin:0 0 .5rem;}
+  h2{font-size:1.1rem;margin:.75rem 0 .25rem;color:#00e0ff;}
+  p{margin:.25rem 0 .5rem;line-height:1.35;}
+  #timer{font-size:2.5rem;text-align:center;margin:.5rem 0;}
+  button{padding:.5rem 1rem;margin:.25rem;border:none;border-radius:4px;font-size:1rem;cursor:pointer;}
+  #start{background:#28a745;color:#fff;}
+  #pause{background:#ffc107;color:#000;}
+  #next{background:#007bff;color:#fff;}
+  #controls{display:flex;justify-content:center;flex-wrap:wrap;}
+  #segment-count{font-size:.85rem;text-align:center;color:#bbb;margin-top:.25rem;}
+  a{color:#00e0ff;}
+</style>
+</head>
+<body>
+  <div id="card">
+    <h1>F3 30-Minute Beatdown</h1>
+    <h2 id="segment-title"></h2>
+    <p id="segment-desc"></p>
+    <div id="timer">00:00</div>
+    <div id="controls">
+      <button id="start">Start</button>
+      <button id="pause">Pause</button>
+      <button id="next">Next</button>
+    </div>
+    <div id="segment-count"></div>
+  </div>
+
+<script>
+/* ------------ WORKOUT DATA ------------- */
+const segments = [
+  {
+    title: "Warm-up (5 min)",
+    desc: "10 SSH • 10 Hillbilly Walkers • 10 Tappy Taps • 10 Slow Merkins • 10 Arm Circles FWD/BWD • Hill jog (1× up & down)",
+    dur: 5*60
+  },
+  {
+    title: "Round 1 – Hill Pump (8 min AMRAP)",
+    desc: "10 Regular Merkins → Sprint up hill → 5 Burpees → Jog down → 20 Big Boy Sit-Ups → 10 Block Curls",
+    dur: 8*60
+  },
+  {
+    title: "Recovery (1 min)",
+    desc: "Easy jog / walk • Hydrate",
+    dur: 60
+  },
+  {
+    title: "Round 2 – Coupon Burnout (8 min AMRAP)",
+    desc: "10 Block Curl+Press • 20 Flutter Kicks (4-ct) • 5 Burpees • 10 Wide Merkins • 10 Block Rows",
+    dur: 8*60
+  },
+  {
+    title: "Recovery (1 min)",
+    desc: "Easy jog / walk • Breathe",
+    dur: 60
+  },
+  {
+    title: "Round 3 – Sprint & Core Crush (8 min AMRAP)",
+    desc: "Sprint up hill → 15 Gas Pumpers → 10 Incline Merkins → Jog down → 5 Burpees → 20 LBCs",
+    dur: 8*60
+  },
+  {
+    title: "Cooldown (2 min)",
+    desc: "Shoulder stretch • Deep squat hold • Hamstring stretch",
+    dur: 2*60
+  }
+];
+/* ------------ STATE ------------- */
+let idx = 0;
+let remaining = segments[0].dur;
+let timerId = null;
+const titleEl = document.getElementById("segment-title");
+const descEl = document.getElementById("segment-desc");
+const timerEl = document.getElementById("timer");
+const segCountEl = document.getElementById("segment-count");
+/* ------------ HELPERS ------------- */
+function format(s){
+  const m = String(Math.floor(s/60)).padStart(2,"0");
+  const secs = String(s%60).padStart(2,"0");
+  return `${m}:${secs}`;
+}
+function render(){
+  const seg = segments[idx];
+  titleEl.textContent = seg.title;
+  descEl.textContent = seg.desc;
+  timerEl.textContent = format(remaining);
+  segCountEl.textContent = `Segment ${idx+1} of ${segments.length}`;
+}
+function nextSegment(){
+  clearInterval(timerId);
+  timerId = null;
+  idx++;
+  if(idx>=segments.length){
+    titleEl.textContent="Workout Complete!";
+    descEl.innerHTML = "Nice job! Hydrate and <a href='https://f3nation.com'>Post Again.</a>";
+    timerEl.textContent="00:00";
+    segCountEl.textContent="";
+    return;
+  }
+  remaining = segments[idx].dur;
+  render();
+}
+function tick(){
+  if(remaining>0){
+    remaining--;
+    timerEl.textContent = format(remaining);
+  }else{
+    nextSegment();
+  }
+}
+/* ------------ BUTTON EVENTS ------------- */
+document.getElementById("start").onclick = () => {
+  if(!timerId){
+    timerId = setInterval(tick,1000);
+  }
+};
+document.getElementById("pause").onclick = () => {
+  if(timerId){
+    clearInterval(timerId);
+    timerId = null;
+  }else{
+    timerId = setInterval(tick,1000);
+  }
+};
+document.getElementById("next").onclick = nextSegment;
+/* ------------ INIT ------------- */
+render();
+</script>
+</body>
+</html>
+
