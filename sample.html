@@ -19,11 +19,23 @@
   #controls{display:flex;justify-content:center;flex-wrap:wrap;}
   #segment-count{font-size:.85rem;text-align:center;color:#bbb;margin-top:.25rem;}
   a{color:#00e0ff;}
+  #flow-diagram{display:flex;align-items:center;justify-content:center;margin-bottom:1rem;overflow-x:auto;padding:.5rem 0;}
+  .chevron{display:flex;align-items:center;background:#333;border-radius:4px;margin:0 2px;min-width:80px;height:36px;position:relative;cursor:pointer;transition:all 0.2s ease;font-size:.8rem;text-align:center;justify-content:center;color:#ccc;}
+  .chevron:hover{background:#444;color:#fff;}
+  .chevron.active{background:#00e0ff;color:#000;font-weight:bold;}
+  .chevron.completed{background:#28a745;color:#fff;}
+  .chevron:not(:last-child):after{content:'';position:absolute;right:-8px;top:50%;transform:translateY(-50%);width:0;height:0;border-left:8px solid;border-top:8px solid transparent;border-bottom:8px solid transparent;z-index:2;}
+  .chevron:not(:last-child):hover:after{border-left-color:#444;}
+  .chevron.active:not(:last-child):after{border-left-color:#00e0ff;}
+  .chevron.completed:not(:last-child):after{border-left-color:#28a745;}
+  .chevron:not(:first-child){padding-left:12px;}
+  @media (max-width: 600px){.chevron{min-width:60px;font-size:.7rem;}}
 </style>
 </head>
 <body>
   <div id="card">
     <h1>F3 30-Minute Beatdown</h1>
+    <div id="flow-diagram"></div>
     <h2 id="segment-title"></h2>
     <p id="segment-desc"></p>
     <div id="timer">00:00</div>
@@ -41,36 +53,43 @@
 const segments = [
   {
     title: "Warm-up (5 min)",
+    shortTitle: "Warm-up",
     desc: "10 SSH • 10 Hillbilly Walkers • 10 Tappy Taps • 10 Slow Merkins • 10 Arm Circles FWD/BWD • Hill jog (1× up & down)",
     dur: 5*60
   },
   {
     title: "Round 1 – Hill Pump (8 min AMRAP)",
+    shortTitle: "Round 1",
     desc: "10 Regular Merkins → Sprint up hill → 5 Burpees → Jog down → 20 Big Boy Sit-Ups → 10 Block Curls",
     dur: 8*60
   },
   {
     title: "Recovery (1 min)",
+    shortTitle: "Recovery",
     desc: "Easy jog / walk • Hydrate",
     dur: 60
   },
   {
     title: "Round 2 – Coupon Burnout (8 min AMRAP)",
+    shortTitle: "Round 2",
     desc: "10 Block Curl+Press • 20 Flutter Kicks (4-ct) • 5 Burpees • 10 Wide Merkins • 10 Block Rows",
     dur: 8*60
   },
   {
     title: "Recovery (1 min)",
+    shortTitle: "Recovery",
     desc: "Easy jog / walk • Breathe",
     dur: 60
   },
   {
     title: "Round 3 – Sprint & Core Crush (8 min AMRAP)",
+    shortTitle: "Round 3",
     desc: "Sprint up hill → 15 Gas Pumpers → 10 Incline Merkins → Jog down → 5 Burpees → 20 LBCs",
     dur: 8*60
   },
   {
     title: "Cooldown (2 min)",
+    shortTitle: "Cooldown",
     desc: "Shoulder stretch • Deep squat hold • Hamstring stretch",
     dur: 2*60
   }
@@ -83,11 +102,20 @@ const titleEl = document.getElementById("segment-title");
 const descEl = document.getElementById("segment-desc");
 const timerEl = document.getElementById("timer");
 const segCountEl = document.getElementById("segment-count");
+const flowEl = document.getElementById("flow-diagram");
 /* ------------ HELPERS ------------- */
 function format(s){
   const m = String(Math.floor(s/60)).padStart(2,"0");
   const secs = String(s%60).padStart(2,"0");
   return `${m}:${secs}`;
+}
+function renderFlowDiagram(){
+  flowEl.innerHTML = segments.map((segment, i) => {
+    let className = "chevron";
+    if(i < idx) className += " completed";
+    if(i === idx) className += " active";
+    return `<div class="${className}" data-index="${i}">${segment.shortTitle}</div>`;
+  }).join('');
 }
 function render(){
   const seg = segments[idx];
@@ -95,6 +123,16 @@ function render(){
   descEl.textContent = seg.desc;
   timerEl.textContent = format(remaining);
   segCountEl.textContent = `Segment ${idx+1} of ${segments.length}`;
+  renderFlowDiagram();
+}
+function goToSegment(newIdx){
+  if(newIdx >= 0 && newIdx < segments.length){
+    clearInterval(timerId);
+    timerId = null;
+    idx = newIdx;
+    remaining = segments[idx].dur;
+    render();
+  }
 }
 function nextSegment(){
   clearInterval(timerId);
@@ -143,6 +181,12 @@ document.getElementById("pause").onclick = () => {
 };
 document.getElementById("previous").onclick = previousSegment;
 document.getElementById("next").onclick = nextSegment;
+flowEl.addEventListener('click', (e) => {
+  if(e.target.classList.contains('chevron')){
+    const newIdx = parseInt(e.target.dataset.index);
+    goToSegment(newIdx);
+  }
+});
 /* ------------ INIT ------------- */
 render();
 </script>
