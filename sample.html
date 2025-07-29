@@ -16,6 +16,7 @@
   #start{background:#28a745;color:#fff;}
   #pause{background:#ffc107;color:#000;}
   #next{background:#007bff;color:#fff;}
+  #add-workout{background:#17a2b8;color:#fff;}
   #controls{display:flex;justify-content:center;flex-wrap:wrap;}
   #segment-count{font-size:.85rem;text-align:center;color:#bbb;margin-top:.25rem;}
   a{color:#00e0ff;}
@@ -30,6 +31,24 @@
   .chevron.completed:not(:last-child):after{border-left-color:#28a745;}
   .chevron:not(:first-child){padding-left:12px;}
   @media (max-width: 600px){.chevron{min-width:60px;font-size:.7rem;}}
+  
+  /* Modal styles */
+  .modal{display:none;position:fixed;z-index:1000;left:0;top:0;width:100%;height:100%;overflow:auto;background-color:rgba(0,0,0,0.8);}
+  .modal-content{background-color:#333;margin:5% auto;padding:0;border-radius:8px;width:90%;max-width:600px;box-shadow:0 4px 20px rgba(0,0,0,0.5);}
+  .modal-header{padding:1rem 1.5rem;border-bottom:1px solid #555;display:flex;justify-content:space-between;align-items:center;}
+  .modal-header h2{margin:0;color:#f4f4f4;}
+  .close{color:#bbb;font-size:28px;font-weight:bold;cursor:pointer;line-height:1;}
+  .close:hover{color:#fff;}
+  .modal-body{padding:1.5rem;}
+  .modal-body p{color:#ccc;margin-bottom:1rem;}
+  .json-example{background:#222;padding:1rem;border-radius:4px;color:#0f0;font-size:0.85rem;margin-bottom:1rem;overflow-x:auto;}
+  #workout-json{width:100%;background:#222;color:#f4f4f4;border:1px solid #555;border-radius:4px;padding:0.75rem;font-family:monospace;font-size:0.9rem;resize:vertical;box-sizing:border-box;}
+  #workout-json:focus{outline:none;border-color:#00e0ff;}
+  .error-message{color:#ff4444;font-size:0.9rem;margin-top:0.5rem;display:none;}
+  .modal-footer{padding:1rem 1.5rem;border-top:1px solid #555;display:flex;justify-content:flex-end;gap:0.5rem;}
+  .modal-footer button{padding:0.5rem 1rem;border:none;border-radius:4px;cursor:pointer;font-size:0.9rem;}
+  #cancel-workout{background:#6c757d;color:#fff;}
+  #submit-workout{background:#28a745;color:#fff;}
 </style>
 </head>
 <body>
@@ -44,8 +63,37 @@
       <button id="start">Start</button>
       <button id="pause">Pause</button>
       <button id="next">Next</button>
+      <button id="add-workout">Add Workout</button>
     </div>
     <div id="segment-count"></div>
+  </div>
+
+  <!-- Modal for adding new workout -->
+  <div id="workout-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Add New Workout</h2>
+        <span class="close">&times;</span>
+      </div>
+      <div class="modal-body">
+        <p>Paste your workout JSON below. The format should be an array of segments with the following structure:</p>
+        <pre class="json-example">
+[
+  {
+    "title": "Warm-up (5 min)",
+    "shortTitle": "Warm-up",
+    "desc": "Exercise description",
+    "dur": 300
+  }
+]</pre>
+        <textarea id="workout-json" placeholder="Paste your workout JSON here..." rows="15"></textarea>
+        <div id="json-error" class="error-message"></div>
+      </div>
+      <div class="modal-footer">
+        <button id="cancel-workout">Cancel</button>
+        <button id="submit-workout">Add Workout</button>
+      </div>
+    </div>
   </div>
 
 <script>
@@ -103,6 +151,9 @@ const descEl = document.getElementById("segment-desc");
 const timerEl = document.getElementById("timer");
 const segCountEl = document.getElementById("segment-count");
 const flowEl = document.getElementById("flow-diagram");
+const modal = document.getElementById("workout-modal");
+const workoutJsonEl = document.getElementById("workout-json");
+const jsonErrorEl = document.getElementById("json-error");
 /* ------------ HELPERS ------------- */
 function format(s){
   const m = String(Math.floor(s/60)).padStart(2,"0");
@@ -165,6 +216,71 @@ function tick(){
     nextSegment();
   }
 }
+function validateWorkoutData(data) {
+  if (!Array.isArray(data)) {
+    return "Workout data must be an array of segments.";
+  }
+  
+  if (data.length === 0) {
+    return "Workout must have at least one segment.";
+  }
+  
+  for (let i = 0; i < data.length; i++) {
+    const segment = data[i];
+    
+    if (typeof segment !== 'object' || segment === null) {
+      return `Segment ${i + 1} must be an object.`;
+    }
+    
+    if (typeof segment.title !== 'string' || segment.title.trim() === '') {
+      return `Segment ${i + 1} must have a non-empty 'title' string.`;
+    }
+    
+    if (typeof segment.shortTitle !== 'string' || segment.shortTitle.trim() === '') {
+      return `Segment ${i + 1} must have a non-empty 'shortTitle' string.`;
+    }
+    
+    if (typeof segment.desc !== 'string' || segment.desc.trim() === '') {
+      return `Segment ${i + 1} must have a non-empty 'desc' string.`;
+    }
+    
+    if (typeof segment.dur !== 'number' || segment.dur <= 0 || !Number.isInteger(segment.dur)) {
+      return `Segment ${i + 1} must have a positive integer 'dur' (duration in seconds).`;
+    }
+  }
+  
+  return null; // No errors
+}
+function replaceWorkout(newSegments) {
+  // Stop current timer
+  clearInterval(timerId);
+  timerId = null;
+  
+  // Replace global segments
+  segments.length = 0;
+  segments.push(...newSegments);
+  
+  // Reset to first segment
+  idx = 0;
+  remaining = segments[0].dur;
+  
+  // Re-render
+  render();
+}
+function showModal() {
+  modal.style.display = "block";
+  workoutJsonEl.focus();
+}
+function hideModal() {
+  modal.style.display = "none";
+  workoutJsonEl.value = "";
+  jsonErrorEl.style.display = "none";
+  jsonErrorEl.textContent = "";
+}
+function showError(message) {
+  jsonErrorEl.textContent = message;
+  jsonErrorEl.style.display = "block";
+}
 /* ------------ BUTTON EVENTS ------------- */
 document.getElementById("start").onclick = () => {
   if(!timerId){
@@ -181,12 +297,51 @@ document.getElementById("pause").onclick = () => {
 };
 document.getElementById("previous").onclick = previousSegment;
 document.getElementById("next").onclick = nextSegment;
+document.getElementById("add-workout").onclick = showModal;
 flowEl.addEventListener('click', (e) => {
   if(e.target.classList.contains('chevron')){
     const newIdx = parseInt(e.target.dataset.index);
     goToSegment(newIdx);
   }
 });
+
+// Modal event handlers
+document.querySelector('.close').onclick = hideModal;
+document.getElementById("cancel-workout").onclick = hideModal;
+
+// Close modal when clicking outside of it
+window.onclick = (event) => {
+  if (event.target === modal) {
+    hideModal();
+  }
+};
+
+document.getElementById("submit-workout").onclick = () => {
+  const jsonText = workoutJsonEl.value.trim();
+  
+  if (!jsonText) {
+    showError("Please enter workout JSON data.");
+    return;
+  }
+  
+  let parsedData;
+  try {
+    parsedData = JSON.parse(jsonText);
+  } catch (error) {
+    showError("Invalid JSON format. Please check your syntax.");
+    return;
+  }
+  
+  const validationError = validateWorkoutData(parsedData);
+  if (validationError) {
+    showError(validationError);
+    return;
+  }
+  
+  // If we get here, the data is valid
+  replaceWorkout(parsedData);
+  hideModal();
+};
 /* ------------ INIT ------------- */
 render();
 </script>
