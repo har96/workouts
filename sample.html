@@ -2,16 +2,23 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#111111" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<link rel="manifest" href="/manifest.webmanifest" />
+<link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
 <title>F3 30-Minute Beatdown</title>
 <style>
-  body{font-family:Arial,Helvetica,sans-serif;background:#111;color:#f4f4f4;margin:0;padding:0;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;}
+  html,body{height:100%;overflow:hidden;-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%;text-size-adjust:100%;touch-action:manipulation;}
+  body{font-family:Arial,Helvetica,sans-serif;background:#111;color:#f4f4f4;margin:0;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100dvh;}
   #card{background:#222;padding:1.25rem 1.5rem;border-radius:8px;box-shadow:0 0 10px #000;max-width:500px;width:90vw;}
-  h1{font-size:1.4rem;margin:0 0 .5rem;}
-  h2{font-size:1.1rem;margin:.75rem 0 .25rem;color:#00e0ff;}
-  p{margin:.25rem 0 .5rem;line-height:1.35;}
-  #timer{font-size:2.5rem;text-align:center;margin:.5rem 0;}
-  button{padding:.5rem 1rem;margin:.25rem;border:none;border-radius:4px;font-size:1rem;cursor:pointer;}
+  h1{font-size:1.35rem;margin:0 0 .5rem;}
+  h2{font-size:1.05rem;margin:.75rem 0 .25rem;color:#00e0ff;}
+  p{margin:.25rem 0 .5rem;line-height:1.4;}
+  #timer{font-size:2.25rem;text-align:center;margin:.5rem 0;}
+  button{padding:.6rem 1rem;margin:.25rem;border:none;border-radius:4px;font-size:1rem;cursor:pointer;min-height:44px;}
   #previous{background:#6c757d;color:#fff;}
   #start{background:#28a745;color:#fff;}
   #pause{background:#ffc107;color:#000;}
@@ -30,7 +37,12 @@
   .chevron.active:not(:last-child):after{border-left-color:#00e0ff;}
   .chevron.completed:not(:last-child):after{border-left-color:#28a745;}
   .chevron:not(:first-child){padding-left:12px;}
-  @media (max-width: 600px){.chevron{min-width:60px;font-size:.7rem;}}
+  @media (max-width: 600px){
+    #card{width:94vw;padding:1rem 1.1rem;}
+    h1{font-size:1.25rem;}
+    #timer{font-size:2rem;}
+    .chevron{min-width:56px;font-size:.7rem;}
+  }
   
   /* Modal styles */
   .modal{display:none;position:fixed;z-index:1000;left:0;top:0;width:100%;height:100%;overflow:auto;background-color:rgba(0,0,0,0.8);}
@@ -97,6 +109,14 @@
   </div>
 
 <script>
+// Register service worker for PWA installability and offline support
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('/sw.js').catch(function(err){
+      console.warn('SW registration failed', err);
+    });
+  });
+}
 /* ------------ WORKOUT DATA ------------- */
 const segments = [
   {
